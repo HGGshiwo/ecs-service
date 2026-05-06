@@ -1,0 +1,7 @@
+.env
+ssl/
+acme-data/
+# 忽略 Tailscale 的机器私钥和状态
+ts-data/
+# 忽略 Socket 通信文件
+ts-socket/

@@ -1,0 +1,32 @@
+# 1. 面板和端口设置 (假设你用了上文提到的终极方案)
+port: 7890
+socks-port: 7891
+allow-lan: true
+mode: rule
+external-controller: 0.0.0.0:12345
+secret: "__MY_SECRET__"
+external-ui: ui
+# 2. 从你的 Base64 链接拉取节点
+proxy-providers:
+  my-airport:
+    type: http
+    # 把你那串 Base64 的订阅链接贴到下面！
+    url: "__MY_SUB_URL__"
+    interval: 3600 # 每小时自动更新一次节点
+    path: ./proxies/my-airport.yaml
+    health-check:
+      enable: true
+      interval: 600
+      url: http://www.gstatic.com/generate_204
+# 3. 定义策略组（在面板里显示的按钮）
+proxy-groups:
+  - name: "🚀 节点选择"
+    type: select
+    use:
+      - my-airport # 引用上面拉取回来的节点
+# 4. 定义极简分流规则（国内直连，国外走代理）
+rules:
+  - GEOSITE,cn,DIRECT
+  - GEOIP,LAN,DIRECT
+  - GEOIP,CN,DIRECT
+  - MATCH,🚀 节点选择

@@ -1,0 +1,11 @@
+bindPort = 7000
+vhostHTTPPort = 8080
+# Web 面板配置（可选）
+[webServer]
+port = 7500
+user = "HGGshiwo"
+password = "HGGshiwo"
+addr = "0.0.0.0"
+# TLS 证书配置 (指向 Docker 映射的 /ssl 目录)
+#transport.tls.certFile = "/ssl/fullchain.cer"
+#transport.tls.keyFile = "/ssl/example.com.key"

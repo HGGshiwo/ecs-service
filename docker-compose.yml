@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:
+  mihomo:
+    container_name: mihomo
+    image: docker.io/metacubex/mihomo:Alpha
+    restart: always
+    pid: host
+    network_mode: host
+    cap_add:
+      - ALL
+    volumes:
+      - ./mihomo/config.template.yaml:/config.template.yaml
+      - /dev/net/tun:/dev/net/tun
+      - ./mihomo/ui:/root/.config/mihomo/ui
+    entrypoint: ""
+    command:
+      - sh
+      - -c
+      - |
+        sed -e "s@__MY_SUB_URL__@$SUB_URL@g" -e "s@__MY_SECRET__@$PANEL_SECRET@g" /config.template.yaml > /root/.config/mihomo/config.yaml && exec /mihomo -d /root/.config/mihomo
+
+  # 1. ACME 自动签发证书服务
+  acme.sh:
+    image: neilpang/acme.sh:latest
+    container_name: acme.sh
+    command: daemon # 保持容器后台运行，执行每天的续期检查任务
+    environment:
+      - Ali_Key=${ALI_KEY}
+      - Ali_Secret=${ALI_SECRET}
+    volumes:
+      - ./acme-data:/acme.sh             # 保存 acme 内部状态，防止重启丢失
+      - ./ssl:/ssl                       # 导出证书的目录
+      - /var/run/docker.sock:/var/run/docker.sock # 核心！允许 acme.sh 重启其他容器
+    restart: always
+
+  tailscale:
+    image: tailscale/tailscale:latest
+    container_name: tailscale
+    hostname: aliyun-node          # 在你 Tailscale 控制台显示的机器名字，随便起
+    restart: always
+    cap_add:                       # 容器内运行 VPN 必须的网络权限
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./ts-data:/var/lib/tailscale       # 保存你的登录状态，换机器不掉线
+      - ./ts-socket:/var/run/tailscale     # 核心：把 sock 文件提取到宿主机的这个目录
+      - /dev/net/tun:/dev/net/tun          # 映射虚拟网卡
+    environment:
+      - TS_AUTHKEY=${TS_KEY}  # 填入你刚才申请的真实 Auth Key
+      - TS_STATE_DIR=/var/lib/tailscale  # 强制指定状态保存目录，确保重启不掉线
+      - TS_USERSPACE=false               # 强制使用内核模式的 TUN，性能更好
+
+  derper:
+       image: fredliang/derper:latest
+       container_name: derper
+       restart: always
+       depends_on:
+         - tailscale 
+       ports:
+         - "8443:443"         # DERP 依靠 HTTPS 传输数据
+         - "3478:3478/udp"   # STUN 端口，用于帮助设备进行 P2P 穿透
+       volumes:
+         - ./ssl:/app/certs  # 核心！把 acme.sh 申请的证书挂载给 derper
+         - ./ts-socket:/var/run/tailscale 
+       environment:
+         - DERP_DOMAIN=hggshiwo.top        # 你的域名，必须和 acme.sh 申请的一致
+         - DERP_CERT_MODE=manual          # 告诉 derper 不要自己申请证书，用我们挂载的
+         - DERP_CERT_DIR=/app/certs       # 证书所在的目录
+         # 如果你的证书文件名不是 example.com.crt 和 example.com.key，请重命名或映射正确
+         - DERP_VERIFY_CLIENTS=true      # 初次测试建议设为 false，测试通了再开启防白嫖
+  
+  # 2. FRPS 服务
+  frps:
+     image: snowdreamtech/frps:latest     # 推荐的 frps 镜像
+     container_name: frps
+     volumes:
+       - ./frps/frps.toml:/etc/frp/frps.toml # 映射配置文件
+       - ./ssl:/ssl                       # 映射刚才的证书目录给 frps 读取
+     ports:
+       - "7000:7000"                      # 根据你的实际端口修改
+       - "7500:7500"                      # 面板端口
+       - "8080:8080"
+     restart: always
