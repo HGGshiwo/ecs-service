@@ -44,7 +44,7 @@ services:
       - NET_RAW
     volumes:
       - ./ts-data:/var/lib/tailscale       # 保存你的登录状态，换机器不掉线
-      - ./ts-socket:/var/run/tailscale     # 核心：把 sock 文件提取到宿主机的这个目录
+      - ./ts-socket:/tmp     # 核心：把 sock 文件提取到宿主机的这个目录
       - /dev/net/tun:/dev/net/tun          # 映射虚拟网卡
     environment:
       - TS_AUTHKEY=${TS_KEY}  # 填入你刚才申请的真实 Auth Key
@@ -55,6 +55,7 @@ services:
        image: fredliang/derper:latest
        container_name: derper
        restart: always
+       user: root
        depends_on:
          - tailscale 
        ports:
