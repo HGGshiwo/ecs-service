@@ -75,6 +75,7 @@ services:
   frps:
      image: snowdreamtech/frps:latest     # 推荐的 frps 镜像
      container_name: frps
+     network_mode: "host"
      volumes:
        - ./frps/frps.toml:/etc/frp/frps.toml # 映射配置文件
        - ./ssl:/ssl                       # 映射刚才的证书目录给 frps 读取

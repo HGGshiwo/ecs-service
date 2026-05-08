@@ -6,6 +6,8 @@ port = 7500
 user = "HGGshiwo"
 password = "HGGshiwo"
 addr = "0.0.0.0"
+
+[transport.tls]
 # TLS 证书配置 (指向 Docker 映射的 /ssl 目录)
-#transport.tls.certFile = "/ssl/fullchain.cer"
-#transport.tls.keyFile = "/ssl/example.com.key"
+certFile = "/ssl/hggshiwo.top.crt"
+keyFile = "/ssl/hggshiwo.top.key"
